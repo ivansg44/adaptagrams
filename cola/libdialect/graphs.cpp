@@ -110,6 +110,9 @@ LineSegment_SP BoundingBox::buildSideSegment(CardinalDir side) const {
         return std::make_shared<LineSegment>(Point(x, Y), Point(X, Y));
     case CardinalDir::NORTH:
         return std::make_shared<LineSegment>(Point(x, y), Point(X, y));
+    default:
+        COLA_ASSERT(false);
+
     }
 }
 
@@ -826,7 +829,7 @@ bool Graph::hasSameLayoutAs(const Graph &other, double tol, id_map *idMap) const
                 ++it; ++jt;
             }
         }
-    } catch (std::out_of_range) {
+    } catch (std::out_of_range const&) {
         // We invoke the .at() method of various maps, above.
         // If any of these fails, the two Graphs do not have the same layout.
         return false;
@@ -1055,7 +1058,7 @@ bool Graph::applyProjSeq(const ColaOptions &opts, ProjSeq &ps, int accept) {
     double iel = opts.idealEdgeLength;
     if (iel == 0) iel = getIEL();
     // Do stress computations iff iel >= 0.
-    double lastStress;
+    double lastStress = 0.0;
     if (iel >= 0) lastStress = computeStress();
     // We will check whether all projections work.
     bool allOK = true;
@@ -1308,6 +1311,26 @@ void Graph::setPosesInCorrespNodes(Graph &H) {
     }
 }
 
+void Graph::padCorrespNodes(Graph &H, double dw, double dh, const NodesById &ignore) {
+    NodesById nodes_G = getNodeLookupWithIgnore(ignore);
+    NodesById nodes_H = H.getNodeLookup();
+    auto it = nodes_G.begin();
+    auto jt = nodes_H.begin();
+    while (it != nodes_G.end() && jt != nodes_H.end()) {
+        auto p = *it;
+        auto q = *jt;
+        id_type i = p.first,
+                j = q.first;
+        if (i > j) ++jt;
+        else {
+            if (i == j) {
+                q.second->addPadding(dw, dh);
+            }
+            ++it;
+        }
+    }
+}
+
 void Graph::setRoutesInCorrespEdges(Graph &H, bool directed) {
     // First build a lookup for Edges in H by [srcID][tgtID].
     SparseIdMatrix2d<Edge_SP>::type lookup_H;
@@ -1378,4 +1401,12 @@ void Graph::clearAllConstraints(void) {
 
 void Graph::setCorrespondingConstraints(Graph &H) {
     m_sepMatrix.setCorrespondingConstraints(H.getSepMatrix());
+}
+
+void Graph::transformClosedSubset(SepTransform tf, const std::set<id_type> &ids) {
+    m_sepMatrix.transformClosedSubset(tf, ids);
+}
+
+void Graph::transformOpenSubset(SepTransform tf, const std::set<id_type> &ids) {
+    m_sepMatrix.transformOpenSubset(tf, ids);
 }
