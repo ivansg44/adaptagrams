@@ -28,6 +28,7 @@
 #include <cassert>
 #include <cmath>
 #include <string>
+#include <limits>
 #include <memory>
 #include <cstdio>
 #include <map>
@@ -93,7 +94,7 @@ struct Matrix2d {
     std::string toString() const {
         std::string s = "";
         s += "\n  ";
-        char buffer [10];
+        char buffer [21];
         for (int j=0; j<cols; j++) {
             sprintf(buffer," %2d",j);
             s += std::string(buffer);

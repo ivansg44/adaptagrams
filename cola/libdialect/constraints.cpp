@@ -72,6 +72,8 @@ SepDir dialect::negateSepDir(SepDir sd) {
         return SepDir::RIGHT;
     case SepDir::UP:
         return SepDir::DOWN;
+    default :
+        COLA_ASSERT(false);
     }
 }
 
@@ -112,6 +114,8 @@ SepDir dialect::cardinalDirToSepDir(CardinalDir dir) {
         return SepDir::WEST;
     case CardinalDir::NORTH:
         return SepDir::NORTH;
+    default:
+        COLA_ASSERT(false);
     }
 }
 
@@ -317,8 +321,8 @@ string SepPair::writeTglf(std::map<id_type, unsigned> id2ext, const SepMatrix &m
            ygtStr = ygt == GapType::BDRY ? "B" : "C";
     // Prepare indices.
     unsigned src, tgt;
-    try { src = id2ext.at(this->src); } catch (std::out_of_range) { src = this->src; }
-    try { tgt = id2ext.at(this->tgt); } catch (std::out_of_range) { tgt = this->tgt; }
+    try { src = id2ext.at(this->src); } catch (std::out_of_range const&) { src = this->src; }
+    try { tgt = id2ext.at(this->tgt); } catch (std::out_of_range const&) { tgt = this->tgt; }
     std::ostringstream ss;
     // Vertically aligned
     if (xgt == GapType::CENTRE && xst == SepType::EQ && xgap == 0) {
@@ -641,7 +645,7 @@ void SepMatrix::transformOpenSubset(SepTransform tf, const std::set<id_type> &id
     auto map_end1 = m_sparseLookup.end();
     auto set_ptr1 = ids.cbegin();
     auto set_end = ids.cend();
-    // Part (a): before we run off the end of either the map or the set:
+    // First pass, Part (a): before we run off the end of either the map or the set:
     while (map_ptr1 != map_end1 && set_ptr1 != set_end) {
         id_type i = (*map_ptr1).first;
         id_type a = *set_ptr1;
@@ -668,11 +672,12 @@ void SepMatrix::transformOpenSubset(SepTransform tf, const std::set<id_type> &id
             ++map_ptr1;
         }
     }
-    // Part (b): if we exited part (a) because the set ended first, then all remaining
+    // First pass, Part (b): if we exited part (a) because the set ended first, then all remaining
     // elements in the domain of the map are not in the set.
     while (map_ptr1 != map_end1) {
         id_type i = (*map_ptr1).first;
         out_of_set.push_back(i);
+        ++map_ptr1;
     }
     // Second pass: For elements i not in the set, transform only those pairs (i, j) for
     // which j is in the set.
@@ -734,6 +739,8 @@ void SepMatrix::removeNodes(const NodesById &nodes) {
     auto map_end1 = m_sparseLookup.end();
     auto set_ptr1 = nodes.cbegin();
     auto set_end = nodes.cend();
+    // Special case: If `nodes` is empty, then don't waste time copying the map.
+    if (set_ptr1 == set_end) return;
     while (map_ptr1 != map_end1 && set_ptr1 != set_end) {
         id_type i = (*map_ptr1).first;
         id_type a = (*set_ptr1).first;
@@ -770,10 +777,20 @@ void SepMatrix::removeNodes(const NodesById &nodes) {
                         ++map_ptr2;
                     }
                 }
+                // If the set ended first, anything else in the map stays.
+                while (map_ptr2 != map_end2) {
+                    mi.insert(*map_ptr2);
+                    ++map_ptr2;
+                }
             }
             // Whether or not we did anything, advance the map pointer.
             ++map_ptr1;
         }
+    }
+    // If the set ended first, anything else in the map stays.
+    while (map_ptr1 != map_end1) {
+        m.insert(*map_ptr1);
+        ++map_ptr1;
     }
     // Replace the old lookup.
     m_sparseLookup = m;
