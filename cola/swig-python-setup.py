@@ -20,9 +20,6 @@ if platform.startswith("linux"):
             opt = opt.replace("-Wstrict-prototypes", "")
             (sysconfig.get_config_vars())["OPT"] = opt
 
-    os.environ['CC'] = 'gcc'
-    os.environ['CXX'] = 'g++'
-
 adaptagrams_module = Extension('_adaptagrams',
                                sources=['adaptagrams_wrap.cxx'],
 			                   extra_compile_args=['-DUSE_ASSERT_EXCEPTIONS','-DSWIG_PYTHON_SILENT_MEMLEAK','-std=gnu++11'],
